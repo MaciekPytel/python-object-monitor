@@ -15,6 +15,7 @@ class MockMonitor(monitor.Monitor):
     _monitors = {}
 
     def __init__(self, original_cls, monitored_cls):
+        super(MockMonitor, self).__init__(original_cls, monitored_cls)
         self.cls_name = monitored_cls.__name__
         if self.cls_name in self._monitors:
             raise AssertionError('Class {} monitored more than once'.

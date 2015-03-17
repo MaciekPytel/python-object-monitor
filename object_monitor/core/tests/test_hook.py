@@ -29,7 +29,6 @@ class HookTest(unittest.TestCase):
 
     def check_unmonitored(self, test_cls):
         self.assertFalse(MockMonitor.is_monitored(test_cls))
-        self.assertFalse(hasattr(test_cls, '_monitor_counter'))
         instance = test_cls()
         self.assertFalse(hasattr(instance, '_monitor_id'))
         self.assertEquals(MockMonitor.get_states(test_cls), {})
@@ -46,7 +45,6 @@ class HookTest(unittest.TestCase):
         self.check_monitored(cls)
         self.check_unmonitored(base)
 
-    @unittest.skip('This is a known issue with monitor decorator')
     def test_hook_simple_derived(self):
         cls = type('SampleClass', (object,), {})
         cls = hook.monitor(MockMonitor)(cls)
@@ -74,7 +72,6 @@ class HookTest(unittest.TestCase):
         self.assertEqual(MockMonitor.get_state(cls, instance_id),
                          MockMonitor.STATE_DESTROYED)
 
-    @unittest.skip('This is a known issue with monitor decorator')
     def test_hook_init_usedby_derived(self):
         cls = type('SampleClass', (object,), {'__init__': dummy_init})
         cls = hook.monitor(MockMonitor)(cls)
@@ -86,3 +83,20 @@ class HookTest(unittest.TestCase):
         self.check_unmonitored(derived)
         derived_instance = derived()
         self.assertEqual(derived_instance.param, 42)
+
+    def test_base_and_derived_monitored(self):
+        cls = type('SampleClass', (object,), {'__init__': dummy_init})
+        cls = hook.monitor(MockMonitor)(cls)
+        derived = type('SampleDerived', (cls,), {})
+        derived = hook.monitor(MockMonitor)(derived)
+
+        base_instance = cls()
+        self.assertEquals(base_instance.param, 42)
+        self.assertEquals(len(MockMonitor.get_states(cls)), 1)
+        self.assertEquals(len(MockMonitor.get_states(derived)), 0)
+
+        derived1 = derived()
+        derived2 = derived()
+        self.assertEquals(derived1.param, 42)
+        self.assertEquals(len(MockMonitor.get_states(cls)), 1)
+        self.assertEquals(len(MockMonitor.get_states(derived)), 2)

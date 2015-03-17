@@ -30,3 +30,12 @@ class Monitor(object):
             deallocated.
         '''
         pass
+
+    def is_monitoring(self, obj):
+        '''
+        Check if a given object is monitored by this monitor.
+
+        This is used internally to check if monitor callbacks
+        should be called.
+        '''
+        return obj.__class__ is self._cls
