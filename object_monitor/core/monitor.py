@@ -1,7 +1,10 @@
 class Monitor(object):
+    _monitors = []
+
     ''' Base class for object monitors. '''
     def __init__(self, original_cls, monitored_cls):
         self._cls = monitored_cls
+        self._monitors.append(self)
 
     def on_init(self, instance, instance_id):
         '''
@@ -39,3 +42,14 @@ class Monitor(object):
         should be called.
         '''
         return obj.__class__ is self._cls
+
+    def atexit(self):
+        '''
+        Callback that will be called at program end.
+
+        This is meant to provide a hook to analyse and store any data
+        collected by monitor.
+        NOTE: currently it will only be called if a program exits
+        normally (not by signal or exit()).
+        '''
+        pass
