@@ -65,6 +65,23 @@ def _init_decorator(original_init):
     return wrapper
 
 
+@monitor_decorator
+def _method_decorator(method):
+    name = method.__name__
+    def wrapper(self, *args, **kwargs):
+        result = None
+        error = None
+        try:
+            result = method(self, *args, **kwargs)
+        except Exception as ex:
+            error = ex
+            raise ex
+        finally:
+            self._monitor.on_call(self, self._monitor_id, name,
+                                  result, error, *args, **kwargs)
+    return wrapper
+
+
 def _decorate_method(clsdict, name, decorator, monitor_ref):
     # BEWARE: Here be dragons.
     #
@@ -88,7 +105,7 @@ def _decorate_method(clsdict, name, decorator, monitor_ref):
     clsdict[name] = decorator(method, monitor_ref)
 
 
-def monitor(monitor_cls):
+def monitor(monitor_cls, methods=None):
     '''
     Class decorator - will start monitoring given class using a given monitor.
 
@@ -96,15 +113,27 @@ def monitor(monitor_cls):
     monitor_cls - a class implementing Monitor interface; this class will be
         instantiated per each monitored class (one Monitor instance per
         monitored class)
+    methods - iterable of methods to hook into; overrides
+        monitor_cls.HOOK_METHODS (if present); if neither is present only
+        constructor and finalizer callbacks will be called
 
     NOTE: This decorator doesn't (yet) support nesting - if you want to apply
     multiple you need to combine their functionality into a single Monitor
     class.
     '''
+    if not methods and hasattr(monitor_cls, 'HOOK_METHODS'):
+        methods = monitor_cls.HOOK_METHODS
+
     def wrap(cls):
         monitor_ref = MonitorReference()
         clsdict = dict(cls.__dict__)
         _decorate_method(clsdict, '__init__', _init_decorator, monitor_ref)
+
+        if methods:
+            for method in methods:
+                _decorate_method(clsdict, method,
+                                 _method_decorator, monitor_ref)
+
         clsdict['_monitor_counter'] = 0
         clsdict['_weakrefs'] = set()
 

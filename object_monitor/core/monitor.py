@@ -1,7 +1,11 @@
 class Monitor(object):
+    ''' Base class for object monitors. '''
+
     _monitors = []
 
-    ''' Base class for object monitors. '''
+    ''' A list of methods that will be captured by monitor. '''
+    HOOK_METHODS = []
+
     def __init__(self, original_cls, monitored_cls):
         self._cls = monitored_cls
         self._monitors.append(self)
@@ -31,6 +35,28 @@ class Monitor(object):
         Params:
         instance_id - a unique id assigned to instance that was just
             deallocated.
+        '''
+        pass
+
+    def on_call(self, instance, instance_id, method_name,
+                result, error, *args, **kwargs):
+        '''
+        Callback called when a method is called on instance.
+
+        This is called right after a method finished executing (even if
+        it raised an exception). It will only be called for registered
+        methods.
+
+        Params:
+        instance - instance on which the method was called
+        instance_id - a unique id of instance
+        method_name - string with a name of the called method
+        result - value returned by method
+        error - any exception raised by the method (or None if no
+            exception was raised)
+        args - positional parameters passed to method (not including
+            self)
+        kwargs - keyword parameters passed to method
         '''
         pass
 
