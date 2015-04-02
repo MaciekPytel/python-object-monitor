@@ -46,42 +46,6 @@ def monitor_decorator(decorator_fn):
     return decorator
 
 
-def _delegated_close(ref, cls, instance_id):
-    cls._monitor.on_destroy(instance_id)
-    cls._weakrefs.remove(ref)
-
-
-@monitor_decorator
-def _init_decorator(original_init):
-    def wrapper(self, *args, **kwargs):
-        original_init(self, *args, **kwargs)
-        self._monitor_id = self._monitor_counter
-        self.__class__._monitor_counter += 1
-        close_fn = functools.partial(_delegated_close,
-                                     cls=self.__class__,
-                                     instance_id=self._monitor_id)
-        self._weakrefs.add(weakref.ref(self, close_fn))
-        self._monitor.on_init(self, self._monitor_id)
-    return wrapper
-
-
-@monitor_decorator
-def _method_decorator(method):
-    name = method.__name__
-    def wrapper(self, *args, **kwargs):
-        result = None
-        error = None
-        try:
-            result = method(self, *args, **kwargs)
-        except Exception as ex:
-            error = ex
-            raise ex
-        finally:
-            self._monitor.on_call(self, self._monitor_id, name,
-                                  result, error, *args, **kwargs)
-    return wrapper
-
-
 def _decorate_method(clsdict, name, decorator, monitor_ref):
     # BEWARE: Here be dragons.
     #
@@ -105,7 +69,7 @@ def _decorate_method(clsdict, name, decorator, monitor_ref):
     clsdict[name] = decorator(method, monitor_ref)
 
 
-def monitor(monitor_cls, methods=None):
+def monitor(monitor_cls, methods=None, **kwargs):
     '''
     Class decorator - will start monitoring given class using a given monitor.
 
@@ -116,6 +80,7 @@ def monitor(monitor_cls, methods=None):
     methods - iterable of methods to hook into; overrides
         monitor_cls.HOOK_METHODS (if present); if neither is present only
         constructor and finalizer callbacks will be called
+    kwargs - keyword arguments for monitor class __init__ method()
 
     NOTE: This decorator doesn't (yet) support nesting - if you want to apply
     multiple you need to combine their functionality into a single Monitor
@@ -127,18 +92,19 @@ def monitor(monitor_cls, methods=None):
     def wrap(cls):
         monitor_ref = MonitorReference()
         clsdict = dict(cls.__dict__)
-        _decorate_method(clsdict, '__init__', _init_decorator, monitor_ref)
+        _decorate_method(clsdict, '__init__',
+                         monitor_cls._init_decorator, monitor_ref)
 
         if methods:
             for method in methods:
                 _decorate_method(clsdict, method,
-                                 _method_decorator, monitor_ref)
+                                 monitor_cls._method_decorator, monitor_ref)
 
         clsdict['_monitor_counter'] = 0
         clsdict['_weakrefs'] = set()
 
         newcls = type(cls.__name__, cls.__bases__, clsdict)
-        newcls._monitor = monitor_cls(cls, newcls)
+        newcls._monitor = monitor_cls(cls, newcls, **kwargs)
         monitor_ref.bind(newcls._monitor)
         return newcls
     return wrap
