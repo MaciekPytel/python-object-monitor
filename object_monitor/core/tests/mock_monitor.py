@@ -1,9 +1,9 @@
 import weakref
 
-from object_monitor.core import monitor
+from object_monitor.core import Monitor
 
 
-class MockMonitor(monitor.Monitor):
+class MockMonitor(Monitor):
     '''
     Custom monitor mock used in testing.
 
@@ -12,15 +12,15 @@ class MockMonitor(monitor.Monitor):
     STATE_INITIALISED = 'initialised'
     STATE_DESTROYED = 'destroyed'
 
-    _monitors = {}
+    _test_monitors = {}
 
     def __init__(self, original_cls, monitored_cls):
         super(MockMonitor, self).__init__(original_cls, monitored_cls)
         self.cls_name = monitored_cls.__name__
-        if self.cls_name in self._monitors:
+        if self.cls_name in self._test_monitors:
             raise AssertionError('Class {} monitored more than once'.
                                  format(self.cls_name))
-        self._monitors[self.cls_name] = self
+        self._test_monitors[self.cls_name] = self
         self._instances = {}
 
     def on_init(self, instance, instance_id):
@@ -45,12 +45,12 @@ class MockMonitor(monitor.Monitor):
     @classmethod
     def is_monitored(cls, monitored_cls):
         ''' Check if a given class is monitored. '''
-        return monitored_cls.__name__ in cls._monitors
+        return monitored_cls.__name__ in cls._test_monitors
 
     @classmethod
     def get_states(cls, monitored_cls):
         ''' Get states of all instances of monitored class. '''
-        monitor = cls._monitors.get(monitored_cls.__name__)
+        monitor = cls._test_monitors.get(monitored_cls.__name__)
         return monitor._instances if monitor is not None else {}
 
     @classmethod
@@ -61,4 +61,4 @@ class MockMonitor(monitor.Monitor):
     @classmethod
     def reset(cls):
         ''' Delete all existing monitoring information. '''
-        cls._monitors.clear()
+        cls._test_monitors.clear()
