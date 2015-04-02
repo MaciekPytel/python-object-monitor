@@ -1,7 +1,7 @@
 import unittest
 
-from object_monitor.core import hook
 from mock_monitor import MockMonitor
+from object_monitor.core import hook
 
 
 def dummy_init(self):
@@ -31,7 +31,7 @@ class HookTest(unittest.TestCase):
         self.assertFalse(MockMonitor.is_monitored(test_cls))
         instance = test_cls()
         self.assertFalse(hasattr(instance, '_monitor_id'))
-        self.assertEquals(MockMonitor.get_states(test_cls), {})
+        self.assertEqual(MockMonitor.get_states(test_cls), {})
 
     def test_hook_empty_class(self):
         cls = type('SampleClass', (object,), {})
@@ -59,12 +59,12 @@ class HookTest(unittest.TestCase):
 
         # make sure we didn't break __init__ in baseclass
         base_instance = base()
-        self.assertEquals(base_instance.param, 42)
+        self.assertEqual(base_instance.param, 42)
         self.check_unmonitored(base)
 
         # make sure __init__ from baseclass gets executed and monitoring works
         instance = cls()
-        self.assertEquals(instance.param, 42)
+        self.assertEqual(instance.param, 42)
         instance_id = instance._monitor_id
         self.assertEqual(MockMonitor.get_state(cls, instance_id),
                          MockMonitor.STATE_INITIALISED)
@@ -91,12 +91,12 @@ class HookTest(unittest.TestCase):
         derived = hook.monitor(MockMonitor)(derived)
 
         base_instance = cls()
-        self.assertEquals(base_instance.param, 42)
-        self.assertEquals(len(MockMonitor.get_states(cls)), 1)
-        self.assertEquals(len(MockMonitor.get_states(derived)), 0)
+        self.assertEqual(base_instance.param, 42)
+        self.assertEqual(len(MockMonitor.get_states(cls)), 1)
+        self.assertEqual(len(MockMonitor.get_states(derived)), 0)
 
         derived1 = derived()
         derived2 = derived()
-        self.assertEquals(derived1.param, 42)
-        self.assertEquals(len(MockMonitor.get_states(cls)), 1)
-        self.assertEquals(len(MockMonitor.get_states(derived)), 2)
+        self.assertEqual(derived1.param, 42)
+        self.assertEqual(len(MockMonitor.get_states(cls)), 1)
+        self.assertEqual(len(MockMonitor.get_states(derived)), 2)

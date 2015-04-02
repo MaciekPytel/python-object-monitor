@@ -1,5 +1,3 @@
-import weakref
-
 from object_monitor.core import Monitor
 
 
